@@ -795,7 +795,7 @@
         if (!canvas) return;
         const ctx = canvas.getContext("2d", { alpha: true });
         const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
-        const glyphs = [" ", ".", ":", "+", "░", "▒", "▓", "█"];
+        const glyphs = ["-", "\\", "|", "/"]; // rotation frames — matter transmuting
         let width = 0;
         let height = 0;
         let frameId = null;
@@ -841,22 +841,18 @@
             for (let col = 0; col < cols; col += 1) {
               const x = col * cellX;
               const y = row * cellY;
-              // two interfering waves slowly "transmute" each cell up and down
-              // the density ramp
-              const a = Math.sin(x * 0.025 + time * 0.7);
-              const b = Math.cos(y * 0.03 - time * 0.5);
-              const c = Math.sin((x + y) * 0.016 + time * 0.4);
-              let level = (a + b + c + 3) / 6;
-              const edge = Math.min(1, Math.abs(x / width - 0.5) * 1.8 + Math.abs(y / height - 0.5) * 1.2);
-              level = Math.max(0, Math.min(1, level * 0.8 + edge * 0.18));
-              if (level < 0.26) continue;
-              const idx = Math.min(glyphs.length - 1, Math.floor(level * glyphs.length));
-              const glyph = glyphs[idx];
-              if (glyph === " ") continue;
+              // a slow breathing mask keeps the field sparse and shifting
+              const mask = Math.sin(x * 0.02 + time * 0.45) * Math.cos(y * 0.024 - time * 0.32);
+              const level = (mask + 1) / 2;
+              if (level < 0.45) continue;
+              // each cell is a tiny dash rotating through - \ | / ; the phase is
+              // offset by position so the whole field appears to turn
+              const phase = ((Math.floor(time * 3 + x * 0.05 + y * 0.04) % 4) + 4) % 4;
+              const glyph = glyphs[phase];
               const r = Math.round(dim.r + (accent.r - dim.r) * level);
               const g = Math.round(dim.g + (accent.g - dim.g) * level);
               const bl = Math.round(dim.b + (accent.b - dim.b) * level);
-              ctx.fillStyle = `rgba(${r}, ${g}, ${bl}, ${0.05 + level * 0.16})`;
+              ctx.fillStyle = `rgba(${r}, ${g}, ${bl}, ${0.09 + (level - 0.45) * 0.55})`;
               ctx.fillText(glyph, x + cellX * 0.5, y + cellY * 0.5);
             }
           }
