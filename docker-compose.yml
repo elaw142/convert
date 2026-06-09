@@ -1,0 +1,16 @@
+services:
+  convert:
+    build: .
+    container_name: convert
+    restart: unless-stopped
+    ports:
+      - "5011:5011"
+    environment:
+      CONVERT_MAX_FILE_MB: ${CONVERT_MAX_FILE_MB:-1024}
+      CONVERT_TTL: ${CONVERT_TTL:-600}
+    networks:
+      - web
+
+networks:
+  web:
+    external: true
