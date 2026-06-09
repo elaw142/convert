@@ -837,23 +837,32 @@
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
 
+          const hash2 = (px, py) => {
+            const s = Math.sin(px * 127.1 + py * 311.7) * 43758.5453;
+            return s - Math.floor(s);
+          };
           for (let row = 0; row < rows; row += 1) {
             for (let col = 0; col < cols; col += 1) {
               const x = col * cellX;
               const y = row * cellY;
-              // a slow breathing mask keeps the field sparse and shifting
-              const mask = Math.sin(x * 0.02 + time * 0.45) * Math.cos(y * 0.024 - time * 0.32);
-              const level = (mask + 1) / 2;
-              if (level < 0.45) continue;
-              // each cell is a tiny dash rotating through - \ | / ; the phase is
-              // offset by position so the whole field appears to turn
-              const phase = ((Math.floor(time * 3 + x * 0.05 + y * 0.04) % 4) + 4) % 4;
+              // turbulent multi-directional flow → blobby, non-axis-aligned regions
+              const m1 = Math.sin(x * 0.013 + y * 0.017 + time * 0.5);
+              const m2 = Math.sin((x - y) * 0.019 - time * 0.4);
+              const m3 = Math.sin((x + y) * 0.009 + time * 0.22);
+              const h = hash2(col, row);
+              let level = (m1 + m2 + m3 + 3) / 6;
+              level = level * 0.82 + h * 0.18; // per-cell scatter breaks the lattice
+              if (level < 0.52) continue;
+              const phase = ((Math.floor(time * 2.4 + h * 4 + (x + y) * 0.02) % 4) + 4) % 4;
               const glyph = glyphs[phase];
+              // nudge each glyph off the grid so it reads as an organic field
+              const jx = (h - 0.5) * cellX * 0.7;
+              const jy = (hash2(row, col) - 0.5) * cellY * 0.7;
               const r = Math.round(dim.r + (accent.r - dim.r) * level);
               const g = Math.round(dim.g + (accent.g - dim.g) * level);
               const bl = Math.round(dim.b + (accent.b - dim.b) * level);
-              ctx.fillStyle = `rgba(${r}, ${g}, ${bl}, ${0.09 + (level - 0.45) * 0.55})`;
-              ctx.fillText(glyph, x + cellX * 0.5, y + cellY * 0.5);
+              ctx.fillStyle = `rgba(${r}, ${g}, ${bl}, ${0.06 + (level - 0.52) * 0.4})`;
+              ctx.fillText(glyph, x + cellX * 0.5 + jx, y + cellY * 0.5 + jy);
             }
           }
           if (!reduced.matches) frameId = requestAnimationFrame(draw);
